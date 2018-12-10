@@ -1,0 +1,70 @@
+<?xml version='1.0' encoding='utf-8'?>
+
+<scene>
+  <integrator type="path_mis">
+    <float name="length" value="0.5"/>
+  </integrator>
+
+  <float name="filter_h" value="0.001"/>
+  <float name="filter_sigma" value="0.5"/>
+
+
+	<camera type="perspective">
+		<float name="fov" value="33.7856"/>
+		<transform name="toWorld">
+			<scale value="-1,1,1"/>
+			<lookat target="-0.0, 0.4, 0" origin="18.5, -0.8, 12.41159" up="0, 1, 0"/>
+		</transform>
+        <integer name="width" value="1980"/>
+        <integer name="height" value="1020"/>
+	</camera>
+
+	<sampler type="independent">
+		<integer name="sampleCount" value="10"/>
+	</sampler>
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountain_tree_trunk.obj"/>
+    <bsdf type="diffuse">
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/bark_fir.png"/>
+        <vector name="scale" value="1,1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountain_tree_snow.obj"/>
+    <bsdf type="subsurface">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow12.jpg"/>
+        <vector name="scale" value="0.1,0.1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountains.obj"/>
+    <bsdf type="diffuse">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow12.jpg"/>
+        <vector name="scale" value="0.1,0.1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/light_moon.obj"/>
+    <emitter type="area">
+      <color name="radiance" value="100 100 100"/>
+    </emitter>
+  </mesh>
+
+</scene>

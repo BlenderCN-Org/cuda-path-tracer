@@ -1,0 +1,161 @@
+<html>
+	<head>
+
+<style>img{ width: 700px; }</style>
+
+
+		<link href="resources/bootstrap.min.css" rel="stylesheet">
+	    <link href="resources/offcanvas.css" rel="stylesheet">
+
+	    <link href="resources/twentytwenty.css" rel="stylesheet" type="text/css" />
+		</head>
+	<body>
+
+<h2>
+		<h1>Report</h1>
+		<h2>Lukas Rahmann and Thomas Wolf</h2>
+	
+		<h1>Motivation</h1>
+        <p>Our motivation was to create a scene of a snow chalet at night like in the following images:</p>
+            <img src="images/motivation1.png"></img>
+            <img src="images/motivation2.png"></img>
+
+
+		<h1>Part 1. CUDA Implementation</h1>
+
+		<h3>Cuda Memory Management + Main Kernel + Rendering Process.</h3>
+		We wanted to reuse the original NoriObject setup, so we decided to create the objects on the cpu using the original system and then copy those to the GPU. This meant that we could not use any kind of virtual function pointers on GPU ( which we also did not intend to for perfomance reasons), so we had to rewite the way the virtual function are called. 
+For this we created a enum in the supertype holding the information which subtype the object had, and then cast the object down to the apropiate subtype calling a non virtual funtion.
+So e.g.  
+<pre>
+	Color3f c = bsdf->eval(bsdfQuery);
+</pre>
+became 
+<pre>
+	Color3f c = CallBsdf(bsdf,eval,bsdfQuery)
+</pre>
+Where CallBsdf was a macro which would check the subtype of bsdf and downcast to the apropiate class. This also has the advantage that if only one type of e.g. Emitter exists it just a simple downcast without any overhead.The CallBsdf macro is defined in bsdf.h and the CallCudaN macro which this uses is defined in common.h<br>
+
+This was of course only done with the function used in device code.<br><br>
+
+
+Additionally we implemented a transferGpu such that all NoriObjects could transfer local pointer to GPU.<br>
+To do this this the NoriObject class was modified two automaticly generate a linked list (with the start pointer being NoriObject::head) of all Nori objects and provide the objects uniqeIds which are in the range [0,n] with n being the exact number of NoriObjects.
+To resolve internal NoriObject pointers, we provide a list to transferObject which contains the preallocated NoriObjects.
+E.g. :
+<pre>
+
+	h = nori::NoriObject::head;
+	while(h){
+	    h->gpuTransfer(gpuObject);
+	    cudaMemcpy(gpuObject[h->objectId],h,h->getSize(),cudaMemcpyHostToDevice);
+	    h = h->next;
+	}
+
+
+
+</pre>
+For more details see CudaRender::loadFile;
+<br><br>
+
+The main CUDA kernel just gets multiple blocks of the image (each pixel in the block is assigned to a seperate thread) and runs integrator::Li for the specified number of iterations, with averaging afterwards. It then directly writes the results to an OpenGl texture to display it to the user. (Additionally it is written to a memory object  to save it to file and to run the filter on it afterwards). 
+
+As said in the proposal this was the main point in our implementation. So the rest is relativly similar to the original CPU implementation,
+
+<h3>BVH </h3>
+Left the build process untouched, rewrote the rayIntersect to intersect two BVHNodes after each other so we would have less divergence, additonally build a stack for leaves so the divergence in the main while loop would decrease.Also cached the Shape index before tranfering to GPU such that the GPU did not have to loop trough the array.
+
+
+<h3>MiS</h3>
+Extremly similar to the CPU implementation, the main difference ist that we merged the main kernel loop over iterations with the pathMis loop, such that we get less divergence.This means that PathMisIntegrator::Li now gets a ray and other variables and sets the ray to the new ray instead of looping. 
+
+
+<h3>Area Lights & Diffuse & Dielectric </h3>
+No difference to the CPU implementation.(besdes using the Call(T) macros)
+ 
+<h3>Texture</h3>
+We leverage the texture element objects from cuda to evaluate the texture. The rest is equal to the cpu implementation (see below).
+
+<h3>Comparison between gpu and cpu version</h3>
+<p>For comparison we used a i7 860 as cpu and a nvidia 1060GTX gpu.</p>
+<p>The cbox rendered on the cpu 7.5min and on the gpu 1.65min. Both scenes look very similar.</p>
+		<div class="twentytwenty-container">
+	        <img src="scenes/pa4/cbox/cbox_path_mis_cpu.png" alt="CPU" class="img-responsive">
+	        <img src="scenes/pa4/cbox/cbox_path_mis_filtered.png"alt="GPU" class="img-responsive">
+	    </div>
+
+		<div class="twentytwenty-container">
+	        <img src="scenes/pa4/table/table_path_mis_cpu.png" alt="CPU" class="img-responsive">
+	        <img src="scenes/pa4/table/table_path_mis_filtered.png" alt="GPU" class="img-responsive">
+	    </div>
+
+
+	<h1>Part 2. Features</h1>
+
+		<h2>Moderate Denoising (NL-means)</h2>
+		<p>We implemented the denoising features as specified in the paper [<a href="http://ieeexplore.ieee.org/iel5/9901/31473/01467423.pdf">0</a>], since the lecture notes were bit confusing. The implementation is very fast since we parallelized it with CUDA: every pixel is assigned to a single thread and calculates its new value depending on the neighbourhood.</p>
+        <p>The scene was rendered with 10 samples per pixel only and filterd with different bandwidths h (as described in the paper).</p>
+		<div class="twentytwenty-container">
+	        <img src="scenes/proj/filter_filtered_1.png" alt="bandwidth h = 0.01" class="img-responsive">
+	        <img src="scenes/proj/filter_filtered_2.png" alt="bandwidth h = 0.05" class="img-responsive">
+	        <img src="scenes/proj/filter.png" alt="not filtered" class="img-responsive">
+	    </div>
+ 		<h2>Subsurface Scattering</h2>
+		<p>After playing around with the paper from [<a href="https://graphics.stanford.edu/papers/bssrdf/bssrdf.pdf">1</a>] we noticed that the parametrization is unintuitive (sigma_a, ...) and the bssrdf sampling only hardly explained. We therefore choosed to implement a paper [<a href="https://graphics.pixar.com/library/ApproxBSSRDF/paper.pdf">2</a>] wich approximates the diffusion kernel with two gaussians to simplify the evaluation as well as the sampling process. Furthermore the paramterization (dmfp) suggested in the paper is more intuitive. The sampling is implemented with newton's method (doing 3 fixed number of iterations). The bssdf was originally implemented on CPU and then moved to CUDA to run on the GPU.</p>
+        <p>Implementation in cuda/nori/subsurface.cpp.cu</p>
+		<p>We can see that the SSS converges nicely to the diffuse bsdf if we decrease the dmfp</p>
+		<div class="twentytwenty-container">
+	        <img src="scenes/proj/ajax-ss.png" alt="SSS dmfp=1.0" class="img-responsive">
+	        <img src="scenes/proj/ajax-ss2.png" alt="SSS dmfp=0.1" class="img-responsive">
+	        <img src="scenes/proj/ajax-ss3.png" alt="SSS dmfp=0.01" class="img-responsive">
+	        <img src="scenes/proj/ajax-ss4.png" alt="Diffuse" class="img-responsive">
+	    </div>
+
+		<h2>Images as Texture</h2>
+		<p>We used openCV to load the image, and on the CPU version used resulting cv::mats to return the texture value.</p>
+        <p>Implementation in cuda/nori/imagetexture.cpp.cu</p>
+		<img src="scenes/proj/texture.png"></img>
+
+		<h2>Bump Mapping</h2>
+		<p>Similar to to textures, we use openCV to load the bump map and also to pre-calculate the gradients in x and y direction. We copy both images to the GPU and perturbe the surface normals in setHitInformation() of the shapes.</p>
+        <p>Implementation in cuda/nori/bumpMap.cpp.cu and cuda/nori/normalMap.cpp.cu</p>
+		<img src="scenes/proj/bump.png"></img>
+
+        <p>For our scene we tried out many different snow variants using texture and bump mapping:</p>
+		<div class="twentytwenty-container">
+	        <img src="images/snow1.png" alt="snow 1" class="img-responsive">
+	        <img src="images/snow2.png" alt="snow 2" class="img-responsive">
+	        <img src="images/snow3.png" alt="snow 3" class="img-responsive">
+	        <img src="images/snow5.png" alt="snow 4" class="img-responsive">
+	    </div>
+
+		<h2>Modelling Meshes</h2>
+		<p>
+			<p>We modelled a scene with a mountain chalet, a snowy background and some mountains in Cinema4D. Everything in the scene is modelled by ourselves. No other meshes have been used.</p>
+        <p>The scene is saved as several meshes (one mesh for each type of material) and can be found in scenes/proj/meshes/final/</p>
+			<img src="images/editor1.png"></img>
+			<img src="images/editor2.png"></img>
+			<img src="images/editor3.png"></img>
+            <p>Early renderings</p>
+            <img src="images/early1.png"></img>
+            <img src="images/early2.png"></img>
+            <img src="images/early3.png"></img>
+		<h1>Final result</h1>
+        <p>The final scene can be found in scenes/proj/final.xml</p>
+            <p>As proposed we used sss and bump mapping for the snow. We used texture mapping for the wooden blanks of the chalet and we additionally implemented an environment for the sky.</p>
+			<img src="scenes/proj/final_filtered.png"></img>
+		</p>
+
+<!-- Bootstrap core JavaScript -->
+		<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+		<script src="resources/bootstrap.min.js"></script>
+		<script src="resources/offcanvas.js"></script>
+		<script src="resources/jquery.event.move.js"></script>
+		<script src="resources/jquery.twentytwenty.js"></script>
+<script>
+$(window).load(function(){$(".twentytwenty-container").twentytwenty({default_offset_pct: 0.5});});
+</script>
+
+	</body>
+</html>
+ 

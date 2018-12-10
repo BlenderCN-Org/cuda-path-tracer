@@ -1,0 +1,161 @@
+<?xml version='1.0' encoding='utf-8'?>
+
+<scene>
+  <integrator type="path_mis">
+    <float name="length" value="0.5"/>
+  </integrator>
+
+  <float name="filter_h" value="0.001"/>
+  <float name="filter_sigma" value="0.5"/>
+
+
+	<camera type="perspective">
+		<float name="fov" value="56.0"/>
+		<transform name="toWorld">
+			<scale value="-1,1,1"/>
+			<lookat target="0.0, 0.0, 0.0" origin="16.44, -1.34, 4.64" up="0, 1, 0"/>
+		</transform>
+        <integer name="width" value="1980"/>
+        <integer name="height" value="1020"/>
+	</camera>
+
+	<sampler type="independent">
+		<integer name="sampleCount" value="10"/>
+	</sampler>
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountain_tree_trunk.obj"/>
+    <bsdf type="diffuse">
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/bark_fir.png"/>
+        <vector name="scale" value="1,1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountain_tree_snow.obj"/>
+    <bsdf type="subsurface">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow12.jpg"/>
+        <vector name="scale" value="0.1,0.1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/tree_trunk.obj"/>
+    <bsdf type="diffuse">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/bark_fir.png"/>
+        <vector name="scale" value="1,1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/tree_snow.obj"/>
+    <bsdf type="subsurface">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow12.jpg"/>
+        <vector name="scale" value="0.1,0.1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/tree_nail.obj"/>
+    <bsdf type="diffuse">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/nails.png"/>
+        <vector name="scale" value="1,1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+
+
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/mountains.obj"/>
+    <bsdf type="diffuse">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow8.jpg"/>
+        <vector name="scale" value="0.1,0.1"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/snow.obj"/>
+    <bsdf type="subsurface">
+      <color name="dmfp" value="0.1 0.1 0.1"/>
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/snow12.jpg"/>
+        <vector name="scale" value="0.01,0.01"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/doors.obj"/>
+    <bsdf type="diffuse">
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/wood3.jpg"/>
+        <vector name="scale" value="0.5,0.5"/>
+      </texture>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/hut.obj"/>
+    <bsdf type="diffuse">
+      <texture type="image_color" name="albedo">
+        <string name="filename"  value="textures/wood3.jpg"/>
+        <vector name="scale" value="0.5,0.5"/>
+      </texture>
+      </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/glass.obj"/>
+    <bsdf type="dielectric">
+      <color name="dmfp" value="0.9 0.9 0.9"/>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/metal.obj"/>
+    <bsdf type="diffuse">
+      <color name="dmfp" value="0.9 0.9 0.9"/>
+    </bsdf>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/light_out.obj"/>
+    <emitter type="area">
+      <color name="radiance" value="20 20 15"/>
+    </emitter>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/light_in.obj"/>
+    <emitter type="area">
+      <color name="radiance" value="20 20 15"/>
+    </emitter>
+  </mesh>
+
+  <mesh type="obj">
+    <string name="filename" value="meshes/final/light_moon.obj"/>
+    <emitter type="area">
+      <color name="radiance" value="100 100 100"/>
+    </emitter>
+  </mesh>
+
+</scene>
